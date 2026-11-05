@@ -50,27 +50,12 @@ resource "alicloud_log_store" "default" {
 }
 
 resource "alicloud_ga_accelerator" "default" {
-  duration        = 1
-  auto_use_coupon = true
-  spec            = "2"
-}
-
-resource "alicloud_ga_bandwidth_package" "default" {
-  bandwidth      = 100
-  type           = "Basic"
-  bandwidth_type = "Basic"
-  payment_type   = "PayAsYouGo"
-  billing_type   = "PayBy95"
-  ratio          = 30
-}
-
-resource "alicloud_ga_bandwidth_package_attachment" "default" {
-  accelerator_id       = alicloud_ga_accelerator.default.id
-  bandwidth_package_id = alicloud_ga_bandwidth_package.default.id
+  payment_type           = "PayAsYouGo"
+  bandwidth_billing_type = "CDT"
 }
 
 resource "alicloud_ga_listener" "default" {
-  accelerator_id  = alicloud_ga_bandwidth_package_attachment.default.accelerator_id
+  accelerator_id  = alicloud_ga_accelerator.default.id
   client_affinity = "SOURCE_IP"
   protocol        = "HTTP"
   name            = "terraform-example"
@@ -99,12 +84,14 @@ resource "alicloud_ga_endpoint_group" "default" {
 }
 
 resource "alicloud_ga_access_log" "default" {
-  accelerator_id     = alicloud_ga_accelerator.default.id
-  listener_id        = alicloud_ga_listener.default.id
-  endpoint_group_id  = alicloud_ga_endpoint_group.default.id
-  sls_project_name   = alicloud_log_project.default.name
-  sls_log_store_name = alicloud_log_store.default.name
-  sls_region_id      = var.region
+  accelerator_id                               = alicloud_ga_accelerator.default.id
+  listener_id                                  = alicloud_ga_listener.default.id
+  endpoint_group_id                            = alicloud_ga_endpoint_group.default.id
+  sls_project_name                             = alicloud_log_project.default.name
+  sls_log_store_name                           = alicloud_log_store.default.name
+  sls_region_id                                = var.region
+  access_log_record_customized_headers_enabled = true
+  access_log_record_customized_header_list     = ["X-Forwarded-For", "User-Agent"]
 }
 ```
 
@@ -120,6 +107,8 @@ The following arguments are supported:
 * `sls_project_name` - (Required, ForceNew) The name of the Log Service project.
 * `sls_log_store_name` - (Required, ForceNew) The name of the Log Store.
 * `sls_region_id` - (Required, ForceNew) The region ID of the Log Service project.
+* `access_log_record_customized_headers_enabled` - (Optional, ForceNew) Specifies whether to record custom headers in access logs. Valid values: `true`, `false`.
+* `access_log_record_customized_header_list` - (Optional, ForceNew) The list of custom headers to be recorded in access logs.
 
 ## Attributes Reference
 
@@ -127,6 +116,8 @@ The following attributes are exported:
 
 * `id` - The resource ID of Access Log. The value formats as `<accelerator_id>:<listener_id>:<endpoint_group_id>`.
 * `status` - Whether access log is enabled.
+* `access_log_record_customized_headers_enabled` - Whether custom headers recording is enabled.
+* `access_log_record_customized_header_list` - The list of custom headers recorded in access logs.
 
 ## Timeouts
 
